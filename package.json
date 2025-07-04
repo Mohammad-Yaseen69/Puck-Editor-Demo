@@ -39,5 +39,8 @@
   },
   "overrides": {
     "rollup": "npm:@rollup/wasm-node@*"
+  },
+  "rollup": {
+    "externalDependencies": true
   }
 }
