@@ -2,6 +2,21 @@ import type { Config, Fields } from '@measured/puck';
 import "@measured/puck/puck.css";
 
 const commonBoxFields: Fields = {
+  backgroundColor: {
+    type: 'custom',
+    label: 'Background Color',
+    render: ({ onChange, value }) => (
+      <>
+        <p style={{marginBottom: "10px", fontWeight: 600, fontSize: "14px"}}>Background Color</p>
+        <input
+          type="color"
+          value={value || '#ffffff'}
+          onChange={e => onChange(e.target.value)}
+          style={{ width: '40px', height: '32px', border: 'none', background: 'none', cursor: 'pointer' }}
+        />
+      </>
+    )
+  },
   width: { type: 'number', label: 'Width' },
   widthUnit: {
     type: 'select',
@@ -11,6 +26,16 @@ const commonBoxFields: Fields = {
       { label: '%', value: '%' }
     ]
   },
+  height: { type: 'number', label: 'Height' },
+  heightUnit: {
+    type: 'select',
+    label: 'Height Unit',
+    options: [
+      { label: 'px', value: 'px' },
+      { label: '%', value: '%' }
+    ]
+  },
+  gridColumns: { type: 'number', label: 'Grid Columns Span' },
   padding: { type: 'number', label: 'Padding (px)' },
   margin: { type: 'number', label: 'Margin (px)' },
   borderRadius: { type: 'number', label: 'Border Radius (px)' },
@@ -23,16 +48,28 @@ const commonBoxFields: Fields = {
       { label: 'Right', value: 'right' },
       { label: 'Justify', value: 'justify' }
     ]
-  }
+  },
 };
 
-const commonBoxStyle = (props: any) => ({
-  width: props.width ? `${props.width}${props.widthUnit || '%'}` : '100%',
-  padding: props.padding ? `${props.padding}px` : undefined,
-  margin: props.margin ? `${props.margin}px` : undefined,
-  borderRadius: props.borderRadius ? `${props.borderRadius}px` : undefined,
-  textAlign: props.textAlign || undefined
-});
+const commonBoxStyle = (props: any) => {
+  const style: any = {
+    width: props.width ? `${props.width}${props.widthUnit || '%'}` : '100%',
+    height: props.height ? `${props.height}${props.heightUnit || '%'}` : undefined,
+    padding: props.padding ? `${props.padding}px` : undefined,
+    margin: props.margin ? `${props.margin}px` : undefined,
+    borderRadius: props.borderRadius ? `${props.borderRadius}px` : undefined,
+    textAlign: props.textAlign || undefined,
+    backgroundColor: props.backgroundColor || undefined
+  };
+  // If height is set and display is not, force block display for block-level effect
+  if (props.height && !props.display) {
+    style.display = 'block';
+  }
+  if (props.display) {
+    style.display = props.display;
+  }
+  return style;
+};
 
 const PuckConfig: Config = {
   components: {
@@ -88,21 +125,26 @@ const PuckConfig: Config = {
       }
     },
     Image: {
-      render: ({ src, alt, height, objectFit, objectPosition, ...rest }) => (
-        <img
-          src={src}
-          alt={alt}
-          style={{
-            ...commonBoxStyle(rest),
-            height: height ? `${height}px` : 'auto',
-            objectFit,
-            objectPosition
-          }}
-        />
-      ),
+      render: ({ src, alt, objectFit, objectPosition, width, widthUnit, height, heightUnit, ...rest }) => {
+        // Determine width/height for object-fit to work
+        const style = {
+          ...commonBoxStyle(rest),
+          objectFit,
+          objectPosition,
+          width: width ? `${width}${widthUnit || '%'}` : '100%',
+          height: height ? `${height}${heightUnit || '%'}` : '100%'
+        };
+        return (
+          <img
+            src={src}
+            alt={alt}
+            style={style}
+          />
+        );
+      },
       fields: {
-        src: { 
-          type: 'custom', 
+        src: {
+          type: 'custom',
           label: 'Image URL or Upload',
           render: ({ onChange, value }) => (
             <div>
@@ -120,12 +162,12 @@ const PuckConfig: Config = {
                   if (file) {
                     const formData = new FormData();
                     formData.append('image', file);
-            
+
                     const res = await fetch(`https://api.imgbb.com/1/upload?key=1a8e6e50c22ea42de12f3741b2ea605d`, {
                       method: 'POST',
                       body: formData,
                     });
-            
+
                     const data = await res.json();
                     const url = data.data?.url;
                     if (url) {
@@ -229,26 +271,26 @@ const PuckConfig: Config = {
     },
     Card: {
       render: ({ backgroundColor, borderColor, shadow, content: Content, ...rest }) => (
-        <div style={{ 
-          ...commonBoxStyle(rest), 
-          backgroundColor, 
+        <div style={{
+          ...commonBoxStyle(rest),
+          backgroundColor,
           border: borderColor ? `1px solid ${borderColor}` : '1px solid #ddd',
           boxShadow: shadow ? '0 4px 6px rgba(0,0,0,0.1)' : 'none',
           transition: 'transform 0.2s, box-shadow 0.2s',
           cursor: 'pointer'
         }}
-        onMouseEnter={(e) => {
-          if (shadow) {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (shadow) {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-          }
-        }}
+          onMouseEnter={(e) => {
+            if (shadow) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (shadow) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+            }
+          }}
         >
           <Content />
         </div>
@@ -256,8 +298,8 @@ const PuckConfig: Config = {
       fields: {
         backgroundColor: { type: 'text', label: 'Background Color' },
         borderColor: { type: 'text', label: 'Border Color' },
-        shadow: { 
-          type: 'radio', 
+        shadow: {
+          type: 'radio',
           label: 'Add Shadow',
           options: [
             { label: 'Yes', value: true },
@@ -276,42 +318,42 @@ const PuckConfig: Config = {
       }
     },
     LogoCard: {
-      render: ({ 
-        logo, 
-        title, 
-        description, 
-        backgroundColor, 
-        borderColor, 
-        shadow, 
-        flexDirection, 
-        alignItems, 
+      render: ({
+        logo,
+        title,
+        description,
+        backgroundColor,
+        borderColor,
+        shadow,
+        flexDirection,
+        alignItems,
         justifyContent,
         logoSize,
-        ...rest 
+        ...rest
       }) => (
-        <div style={{ 
-          ...commonBoxStyle(rest), 
-          backgroundColor, 
+        <div style={{
+          ...commonBoxStyle(rest),
+          backgroundColor,
           border: borderColor ? `1px solid ${borderColor}` : '1px solid #ddd',
           boxShadow: shadow ? '0 4px 6px rgba(0,0,0,0.1)' : 'none',
           transition: 'transform 0.2s, box-shadow 0.2s',
           cursor: 'pointer'
         }}
-        onMouseEnter={(e) => {
-          if (shadow) {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (shadow) {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-          }
-        }}
+          onMouseEnter={(e) => {
+            if (shadow) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (shadow) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+            }
+          }}
         >
-          <div style={{ 
-            display: 'flex', 
+          <div style={{
+            display: 'flex',
             flexDirection: flexDirection || 'row',
             alignItems: alignItems || 'center',
             justifyContent: justifyContent || 'flex-start',
@@ -319,22 +361,22 @@ const PuckConfig: Config = {
           }}>
             {logo && (
               <div style={{ flexShrink: 0 }}>
-                <img 
-                  src={logo} 
-                  alt="Logo" 
-                  style={{ 
+                <img
+                  src={logo}
+                  alt="Logo"
+                  style={{
                     width: logoSize ? `${logoSize}px` : '60px',
                     height: logoSize ? `${logoSize}px` : '60px',
                     objectFit: 'contain'
-                  }} 
+                  }}
                 />
               </div>
             )}
             <div style={{ flex: 1 }}>
               {title && (
-                <h3 style={{ 
-                  margin: '0 0 8px 0', 
-                  fontSize: '18px', 
+                <h3 style={{
+                  margin: '0 0 8px 0',
+                  fontSize: '18px',
                   fontWeight: 'bold',
                   color: '#333'
                 }}>
@@ -342,9 +384,9 @@ const PuckConfig: Config = {
                 </h3>
               )}
               {description && (
-                <p style={{ 
-                  margin: '0', 
-                  fontSize: '14px', 
+                <p style={{
+                  margin: '0',
+                  fontSize: '14px',
                   lineHeight: '1.5',
                   color: '#666'
                 }}>
@@ -356,8 +398,8 @@ const PuckConfig: Config = {
         </div>
       ),
       fields: {
-        logo: { 
-          type: 'custom', 
+        logo: {
+          type: 'custom',
           label: 'Logo Image URL',
           render: ({ onChange, value }) => (
             <div>
@@ -375,12 +417,12 @@ const PuckConfig: Config = {
                   if (file) {
                     const formData = new FormData();
                     formData.append('image', file);
-            
+
                     const res = await fetch(`https://api.imgbb.com/1/upload?key=1a8e6e50c22ea42de12f3741b2ea605d`, {
                       method: 'POST',
                       body: formData,
                     });
-            
+
                     const data = await res.json();
                     const url = data.data?.url;
                     if (url) {
@@ -396,8 +438,8 @@ const PuckConfig: Config = {
         description: { type: 'textarea', label: 'Description' },
         backgroundColor: { type: 'text', label: 'Background Color' },
         borderColor: { type: 'text', label: 'Border Color' },
-        shadow: { 
-          type: 'radio', 
+        shadow: {
+          type: 'radio',
           label: 'Add Shadow',
           options: [
             { label: 'Yes', value: true },
@@ -501,7 +543,15 @@ const PuckConfig: Config = {
     Grid: {
       render: ({ columns, gap, content: Content, ...rest }) => (
         <div>
-          <Content style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: gap ? `${gap}px` : undefined, ...commonBoxStyle(rest) }} />
+          <Content 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: `repeat(${columns}, 1fr)`, 
+              gap: gap ? `${gap}px` : undefined, 
+              ...commonBoxStyle(rest) 
+            }}
+            itemStyle={(itemProps: any) => itemProps.gridColumns ? { gridColumn: `span ${itemProps.gridColumns}` } : {}}
+          />
         </div>
       ),
       fields: {
@@ -518,9 +568,9 @@ const PuckConfig: Config = {
     },
     Header: {
       render: ({ logo, logoText, navLinks, backgroundColor, textColor, padding, shadow, sticky, ...rest }) => (
-        <header 
-          style={{ 
-            ...commonBoxStyle(rest), 
+        <header
+          style={{
+            ...commonBoxStyle(rest),
             backgroundColor: backgroundColor || '#ffffff',
             color: textColor || '#000000',
             padding: padding ? `${padding}px` : '16px',
@@ -536,20 +586,20 @@ const PuckConfig: Config = {
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {logo && (
-              <img 
-                src={logo} 
-                alt="Logo" 
-                style={{ 
-                  height: '40px', 
-                  width: 'auto', 
-                  marginRight: '12px' 
-                }} 
+              <img
+                src={logo}
+                alt="Logo"
+                style={{
+                  height: '40px',
+                  width: 'auto',
+                  marginRight: '12px'
+                }}
               />
             )}
             {logoText && (
-              <h1 style={{ 
-                fontSize: '24px', 
-                fontWeight: 'bold', 
+              <h1 style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
                 margin: '0',
                 color: textColor || '#000000'
               }}>
@@ -560,18 +610,18 @@ const PuckConfig: Config = {
 
           {/* Navigation Links */}
           <nav>
-            <ul style={{ 
-              display: 'flex', 
-              listStyle: 'none', 
-              margin: '0', 
+            <ul style={{
+              display: 'flex',
+              listStyle: 'none',
+              margin: '0',
               padding: '0',
               gap: '24px'
             }}>
               {navLinks?.map((link: any, index: number) => (
                 <li key={index}>
-                  <a 
-                    href={link.url || '#'} 
-                    style={{ 
+                  <a
+                    href={link.url || '#'}
+                    style={{
                       textDecoration: 'none',
                       color: textColor || '#000000',
                       fontWeight: '500',
@@ -595,8 +645,8 @@ const PuckConfig: Config = {
         </header>
       ),
       fields: {
-        logo: { 
-          type: 'custom', 
+        logo: {
+          type: 'custom',
           label: 'Logo Image URL',
           render: ({ onChange, value }) => (
             <div>
@@ -614,12 +664,12 @@ const PuckConfig: Config = {
                   if (file) {
                     const formData = new FormData();
                     formData.append('image', file);
-            
+
                     const res = await fetch(`https://api.imgbb.com/1/upload?key=1a8e6e50c22ea42de12f3741b2ea605d`, {
                       method: 'POST',
                       body: formData,
                     });
-            
+
                     const data = await res.json();
                     const url = data.data?.url;
                     if (url) {
@@ -643,16 +693,16 @@ const PuckConfig: Config = {
         backgroundColor: { type: 'text', label: 'Background Color' },
         textColor: { type: 'text', label: 'Text Color' },
         padding: { type: 'number', label: 'Padding (px)' },
-        shadow: { 
-          type: 'radio', 
+        shadow: {
+          type: 'radio',
           label: 'Add Shadow',
           options: [
             { label: 'Yes', value: true },
             { label: 'No', value: false }
           ]
         },
-        sticky: { 
-          type: 'radio', 
+        sticky: {
+          type: 'radio',
           label: 'Sticky Header',
           options: [
             { label: 'Yes', value: true },
@@ -678,22 +728,22 @@ const PuckConfig: Config = {
       }
     },
     Footer: {
-      render: ({ 
-        logo, 
-        logoText, 
-        sections, 
-        backgroundColor, 
-        textColor, 
-        padding, 
-        borderTop, 
+      render: ({
+        logo,
+        logoText,
+        sections,
+        backgroundColor,
+        textColor,
+        padding,
+        borderTop,
         borderColor,
         socialLinks,
         copyrightText,
-        ...rest 
+        ...rest
       }) => (
-        <footer 
-          style={{ 
-            ...commonBoxStyle(rest), 
+        <footer
+          style={{
+            ...commonBoxStyle(rest),
             backgroundColor: backgroundColor || '#333333',
             color: textColor || '#ffffff',
             padding: padding ? `${padding}px` : '40px 16px',
@@ -701,37 +751,37 @@ const PuckConfig: Config = {
           }}
         >
           {/* Main Footer Content */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
             gap: '32px',
             marginBottom: '32px'
           }}>
             {/* Logo Section */}
             <div>
               {logo && (
-                <img 
-                  src={logo} 
-                  alt="Logo" 
-                  style={{ 
-                    height: '40px', 
-                    width: 'auto', 
-                    marginBottom: '16px' 
-                  }} 
+                <img
+                  src={logo}
+                  alt="Logo"
+                  style={{
+                    height: '40px',
+                    width: 'auto',
+                    marginBottom: '16px'
+                  }}
                 />
               )}
               {logoText && (
-                <h3 style={{ 
-                  fontSize: '20px', 
-                  fontWeight: 'bold', 
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
                   margin: '0 0 16px 0',
                   color: textColor || '#ffffff'
                 }}>
                   {logoText}
                 </h3>
               )}
-              <p style={{ 
-                fontSize: '14px', 
+              <p style={{
+                fontSize: '14px',
                 lineHeight: '1.6',
                 margin: '0',
                 opacity: '0.8'
@@ -743,24 +793,24 @@ const PuckConfig: Config = {
             {/* Dynamic Sections */}
             {sections?.map((section: any, index: number) => (
               <div key={index}>
-                <h4 style={{ 
-                  fontSize: '16px', 
-                  fontWeight: 'bold', 
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: 'bold',
                   margin: '0 0 16px 0',
                   color: textColor || '#ffffff'
                 }}>
                   {section.title || 'Section'}
                 </h4>
-                <ul style={{ 
-                  listStyle: 'none', 
-                  margin: '0', 
-                  padding: '0' 
+                <ul style={{
+                  listStyle: 'none',
+                  margin: '0',
+                  padding: '0'
                 }}>
                   {section.links?.map((link: any, linkIndex: number) => (
                     <li key={linkIndex} style={{ marginBottom: '8px' }}>
-                      <a 
-                        href={link.url || '#'} 
-                        style={{ 
+                      <a
+                        href={link.url || '#'}
+                        style={{
                           textDecoration: 'none',
                           color: textColor || '#ffffff',
                           opacity: '0.8',
@@ -785,14 +835,14 @@ const PuckConfig: Config = {
 
           {/* Social Links */}
           {socialLinks && socialLinks.length > 0 && (
-            <div style={{ 
-              borderTop: `1px solid ${borderColor || '#555555'}`, 
+            <div style={{
+              borderTop: `1px solid ${borderColor || '#555555'}`,
               paddingTop: '24px',
               marginBottom: '24px'
             }}>
-              <h4 style={{ 
-                fontSize: '16px', 
-                fontWeight: 'bold', 
+              <h4 style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
                 margin: '0 0 16px 0',
                 color: textColor || '#ffffff'
               }}>
@@ -800,21 +850,21 @@ const PuckConfig: Config = {
               </h4>
               <div style={{ display: 'flex', gap: '16px' }}>
                 {socialLinks.map((social: any, index: number) => (
-                  <a 
+                  <a
                     key={index}
-                    href={social.url || '#'} 
-                                         style={{ 
-                       width: '40px',
-                       height: '40px',
-                       backgroundColor: 'rgba(255,255,255,0.1)',
-                       borderRadius: '50%',
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'center',
-                       textDecoration: 'none',
-                       color: textColor || '#ffffff',
-                       transition: 'background-color 0.2s'
-                     }}
+                    href={social.url || '#'}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textDecoration: 'none',
+                      color: textColor || '#ffffff',
+                      transition: 'background-color 0.2s'
+                    }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
                     }}
@@ -830,13 +880,13 @@ const PuckConfig: Config = {
           )}
 
           {/* Copyright */}
-          <div style={{ 
-            borderTop: `1px solid ${borderColor || '#555555'}`, 
+          <div style={{
+            borderTop: `1px solid ${borderColor || '#555555'}`,
             paddingTop: '24px',
             textAlign: 'center'
           }}>
-            <p style={{ 
-              fontSize: '14px', 
+            <p style={{
+              fontSize: '14px',
               margin: '0',
               opacity: '0.8'
             }}>
@@ -846,8 +896,8 @@ const PuckConfig: Config = {
         </footer>
       ),
       fields: {
-        logo: { 
-          type: 'custom', 
+        logo: {
+          type: 'custom',
           label: 'Logo Image URL',
           render: ({ onChange, value }) => (
             <div>
@@ -865,12 +915,12 @@ const PuckConfig: Config = {
                   if (file) {
                     const formData = new FormData();
                     formData.append('image', file);
-            
+
                     const res = await fetch(`https://api.imgbb.com/1/upload?key=1a8e6e50c22ea42de12f3741b2ea605d`, {
                       method: 'POST',
                       body: formData,
                     });
-            
+
                     const data = await res.json();
                     const url = data.data?.url;
                     if (url) {
@@ -909,8 +959,8 @@ const PuckConfig: Config = {
         backgroundColor: { type: 'text', label: 'Background Color' },
         textColor: { type: 'text', label: 'Text Color' },
         padding: { type: 'number', label: 'Padding (px)' },
-        borderTop: { 
-          type: 'radio', 
+        borderTop: {
+          type: 'radio',
           label: 'Show Top Border',
           options: [
             { label: 'Yes', value: true },
@@ -984,6 +1034,37 @@ const PuckConfig: Config = {
       defaultProps: {
         size: 16,
         widthUnit: '%'
+      }
+    },
+    Video: {
+      render: ({ src, autoplay, controls, loop, muted, ...rest }) => (
+        <video
+          src={src}
+          autoPlay={autoplay}
+          controls={controls}
+          loop={loop}
+          muted={muted}
+          style={{ ...commonBoxStyle(rest) }}
+        />
+      ),
+      fields: {
+        src: { type: 'text', label: 'Video URL' },
+        autoplay: { type: 'radio', label: 'Autoplay', options: [ { label: 'Yes', value: true }, { label: 'No', value: false } ] },
+        controls: { type: 'radio', label: 'Show Controls (Player UI)', options: [ { label: 'Yes', value: true }, { label: 'No', value: false } ] },
+        loop: { type: 'radio', label: 'Loop', options: [ { label: 'Yes', value: true }, { label: 'No', value: false } ] },
+        muted: { type: 'radio', label: 'Muted', options: [ { label: 'Yes', value: true }, { label: 'No', value: false } ] },
+        ...commonBoxFields
+      },
+      defaultProps: {
+        src: '',
+        autoplay: false,
+        controls: true,
+        loop: false,
+        muted: false,
+        widthUnit: '%',
+        heightUnit: 'px',
+        width: 640,
+        height: 360
       }
     }
   }

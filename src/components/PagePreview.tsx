@@ -10,15 +10,14 @@ export default function PagePreview() {
   const page = useSelector((state: RootState) => state.pages.pages.find(p => p.id === id));
 
   if (!page) {
-    return <div className="text-red-500">Page not found.</div>;
+    return <div className="text-red-500 ">Page not found.</div>;
   }
 
   console.log(page)
   return (
-        <Render
-          config={PuckConfig as Config}
-          data={page.content as Data}
-        />
-
+    <Render
+      config={PuckConfig as Config}
+      data={page.content as Data}
+    />
   );
 } 
