@@ -1,7 +1,13 @@
 {
-    "build": {
-      "env": {
-        "NPM_CONFIG_OPTIONAL": "false"
-      }
+  "build": {
+    "env": {
+      "NPM_CONFIG_OPTIONAL": "false"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/**",
+      "destination": "/index.html"
+    }
+  ]
+}
